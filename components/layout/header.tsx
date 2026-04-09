@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 interface HeaderProps {
   status: "idle" | "thinking" | "executing";
   onClearWorkspace: () => void;
@@ -34,6 +36,12 @@ export function Header({ status, onClearWorkspace }: HeaderProps) {
           />
           {statusLabels[status]}
         </div>
+        <Link
+          href="/about"
+          className="text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          About
+        </Link>
         <button
           onClick={onClearWorkspace}
           className="text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
