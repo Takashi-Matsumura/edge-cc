@@ -78,38 +78,39 @@ export function FileViewer({ path, content }: FileViewerProps) {
         )}
       </div>
 
-      {/* コードエリア */}
-      <pre className="flex-1 overflow-auto text-xs p-2 font-mono min-h-0">
-        {lines.map((line, i) => (
-          <div key={i} className="flex">
-            <span className="w-8 text-right pr-2 text-gray-400 select-none shrink-0">
-              {i + 1}
-            </span>
-            <span className="break-all">{line}</span>
-          </div>
-        ))}
-      </pre>
+      {/* コードエリア + 実行結果を均等分割 */}
+      <div className={`flex-1 flex flex-col min-h-0 ${runState.status !== "idle" ? "" : ""}`}>
+        <pre className={`overflow-auto text-xs p-2 font-mono min-h-0 ${runState.status !== "idle" ? "flex-1 basis-1/2" : "flex-1"}`}>
+          {lines.map((line, i) => (
+            <div key={i} className="flex">
+              <span className="w-8 text-right pr-2 text-gray-400 select-none shrink-0">
+                {i + 1}
+              </span>
+              <span className="break-all">{line}</span>
+            </div>
+          ))}
+        </pre>
 
-      {/* 実行結果 */}
-      {runState.status !== "idle" && (
-        <div className="border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between px-3 py-1 bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 dark:text-gray-400">
-            <span className="font-medium uppercase tracking-wider">Output</span>
-            {runState.command && (
-              <code className="font-mono truncate ml-2">{runState.command}</code>
-            )}
+        {runState.status !== "idle" && (
+          <div className="flex-1 basis-1/2 flex flex-col min-h-0 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between px-3 py-1 bg-gray-100 dark:bg-gray-800 text-[10px] text-gray-500 dark:text-gray-400 shrink-0">
+              <span className="font-medium uppercase tracking-wider">Output</span>
+              {runState.command && (
+                <code className="font-mono truncate ml-2">{runState.command}</code>
+              )}
+            </div>
+            <pre
+              className={`flex-1 text-xs p-2 font-mono overflow-auto min-h-0 ${
+                runState.isError
+                  ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300"
+                  : "bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200"
+              }`}
+            >
+              {runState.status === "running" ? "実行中..." : runState.output}
+            </pre>
           </div>
-          <pre
-            className={`text-xs p-2 font-mono overflow-auto max-h-40 ${
-              runState.isError
-                ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300"
-                : "bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200"
-            }`}
-          >
-            {runState.status === "running" ? "実行中..." : runState.output}
-          </pre>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
