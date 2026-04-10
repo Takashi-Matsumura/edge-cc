@@ -1,7 +1,8 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { exec } from "child_process";
 import type { ToolCall, ToolResult } from "./types";
+import { execAsync } from "@/lib/utils/exec";
+import { requireString, optionalString } from "@/lib/utils/validate";
 
 export const WORKSPACE_ROOT = "/tmp/edge-cc-workspace/";
 
@@ -17,21 +18,23 @@ function resolveSafePath(relativePath: string): string {
   return resolved;
 }
 
+const DANGEROUS_COMMANDS = [/rm\s+-rf\s+\//, /sudo/, /mkfs/, /dd\s+if=/];
+
 async function readFile(args: Record<string, unknown>): Promise<string> {
-  const filePath = resolveSafePath(args.path as string);
-  const content = await fs.readFile(filePath, "utf-8");
-  return content;
+  const filePath = resolveSafePath(requireString(args.path, "path"));
+  return await fs.readFile(filePath, "utf-8");
 }
 
 async function writeFile(args: Record<string, unknown>): Promise<string> {
-  const filePath = resolveSafePath(args.path as string);
+  const filePath = resolveSafePath(requireString(args.path, "path"));
+  const content = requireString(args.content, "content");
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, args.content as string, "utf-8");
+  await fs.writeFile(filePath, content, "utf-8");
   return `ファイルを書き込みました: ${args.path}`;
 }
 
 async function listFiles(args: Record<string, unknown>): Promise<string> {
-  const dirPath = resolveSafePath((args.path as string) || ".");
+  const dirPath = resolveSafePath(optionalString(args.path, "."));
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   if (entries.length === 0) return "(空のディレクトリ)";
   return entries
@@ -40,40 +43,28 @@ async function listFiles(args: Record<string, unknown>): Promise<string> {
 }
 
 async function runCommand(args: Record<string, unknown>): Promise<string> {
-  const command = args.command as string;
+  const command = requireString(args.command, "command");
 
-  // 危険なコマンドのブロック
-  const dangerous = [/rm\s+-rf\s+\//, /sudo/, /mkfs/, /dd\s+if=/];
-  for (const pattern of dangerous) {
+  for (const pattern of DANGEROUS_COMMANDS) {
     if (pattern.test(command)) {
       throw new Error("このコマンドは安全上の理由で実行できません");
     }
   }
 
-  return new Promise((resolve, reject) => {
-    exec(
-      command,
-      {
-        cwd: WORKSPACE_ROOT,
-        timeout: 10000,
-        maxBuffer: 1024 * 1024,
-        env: { ...process.env, HOME: WORKSPACE_ROOT },
-      },
-      (error, stdout, stderr) => {
-        if (error && !stdout && !stderr) {
-          reject(new Error(`コマンド実行エラー: ${error.message}`));
-          return;
-        }
-        const output = [stdout, stderr].filter(Boolean).join("\n");
-        resolve(output || "(出力なし)");
-      }
-    );
+  const result = await execAsync(command, {
+    cwd: WORKSPACE_ROOT,
+    env: { ...process.env, HOME: WORKSPACE_ROOT },
   });
+
+  if (result.isError) {
+    throw new Error(`コマンド実行エラー: ${result.output}`);
+  }
+  return result.output;
 }
 
 async function searchFiles(args: Record<string, unknown>): Promise<string> {
-  const pattern = args.pattern as string;
-  const searchPath = resolveSafePath((args.path as string) || ".");
+  const pattern = requireString(args.pattern, "pattern");
+  const searchPath = resolveSafePath(optionalString(args.path, "."));
   const results: string[] = [];
 
   async function searchDir(dir: string) {
@@ -105,30 +96,30 @@ async function searchFiles(args: Record<string, unknown>): Promise<string> {
   return results.slice(0, 50).join("\n");
 }
 
+const TOOL_HANDLERS: Record<
+  string,
+  (args: Record<string, unknown>) => Promise<string>
+> = {
+  read_file: readFile,
+  write_file: writeFile,
+  list_files: listFiles,
+  run_command: runCommand,
+  search_files: searchFiles,
+};
+
 export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
   await ensureWorkspace();
 
   try {
-    let content: string;
-    switch (toolCall.name) {
-      case "read_file":
-        content = await readFile(toolCall.arguments);
-        break;
-      case "write_file":
-        content = await writeFile(toolCall.arguments);
-        break;
-      case "list_files":
-        content = await listFiles(toolCall.arguments);
-        break;
-      case "run_command":
-        content = await runCommand(toolCall.arguments);
-        break;
-      case "search_files":
-        content = await searchFiles(toolCall.arguments);
-        break;
-      default:
-        content = `不明なツール: ${toolCall.name}`;
+    const handler = TOOL_HANDLERS[toolCall.name];
+    if (!handler) {
+      return {
+        tool_call_id: toolCall.id,
+        content: `不明なツール: ${toolCall.name}`,
+        is_error: true,
+      };
     }
+    const content = await handler(toolCall.arguments);
     return { tool_call_id: toolCall.id, content, is_error: false };
   } catch (error) {
     return {

@@ -32,7 +32,6 @@ function ChatContainer({
     reset: () => {
       setMessages([]);
       historyRef.current = [];
-      idCounter.current = 0;
     },
   }), []);
 

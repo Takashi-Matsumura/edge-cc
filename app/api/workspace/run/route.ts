@@ -1,6 +1,6 @@
-import { exec } from "child_process";
 import path from "path";
 import { WORKSPACE_ROOT } from "@/lib/agent/executor";
+import { execAsync } from "@/lib/utils/exec";
 
 const RUNNERS: Record<string, (filePath: string) => string> = {
   ".py": (f) => `python3 "${f}"`,
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   }
 
   const filePath = body.path;
-  if (!filePath) {
+  if (!filePath || typeof filePath !== "string") {
     return Response.json({ error: "path is required" }, { status: 400 });
   }
 
@@ -40,27 +40,15 @@ export async function POST(request: Request) {
   }
 
   const command = runner(resolved);
+  const result = await execAsync(command, {
+    cwd: WORKSPACE_ROOT,
+    env: { ...process.env, HOME: WORKSPACE_ROOT },
+  });
 
-  return new Promise<Response>((resolve) => {
-    exec(
-      command,
-      {
-        cwd: WORKSPACE_ROOT,
-        timeout: 10000,
-        maxBuffer: 1024 * 1024,
-        env: { ...process.env, HOME: WORKSPACE_ROOT },
-      },
-      (error, stdout, stderr) => {
-        const output = [stdout, stderr].filter(Boolean).join("\n");
-        resolve(
-          Response.json({
-            command,
-            output: output || "(出力なし)",
-            exitCode: error?.code ?? 0,
-            isError: !!error && !stdout && !stderr,
-          })
-        );
-      }
-    );
+  return Response.json({
+    command,
+    output: result.output,
+    exitCode: result.exitCode,
+    isError: result.isError,
   });
 }

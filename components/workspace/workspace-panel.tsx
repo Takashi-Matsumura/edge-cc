@@ -37,8 +37,19 @@ export const WorkspacePanel = forwardRef<WorkspacePanelHandle>(
     useImperativeHandle(ref, () => ({ refresh: fetchTree, reset }), [fetchTree, reset]);
 
     useEffect(() => {
-      fetchTree();
-    }, [fetchTree]);
+      let ignore = false;
+      (async () => {
+        try {
+          const res = await fetch("/api/workspace");
+          if (res.ok && !ignore) {
+            setTree(await res.json());
+          }
+        } catch {
+          // サイレントに失敗
+        }
+      })();
+      return () => { ignore = true; };
+    }, []);
 
     const handleSelectFile = useCallback(async (path: string) => {
       setSelectedFile(path);
@@ -81,7 +92,7 @@ export const WorkspacePanel = forwardRef<WorkspacePanelHandle>(
           </div>
           <div className="flex-1 min-h-0 overflow-hidden">
             {selectedFile ? (
-              <FileViewer path={selectedFile} content={fileContent} />
+              <FileViewer key={selectedFile} path={selectedFile} content={fileContent} />
             ) : (
               <div className="flex items-center justify-center h-full text-xs text-gray-400 dark:text-gray-500">
                 ファイルを選択して内容を表示

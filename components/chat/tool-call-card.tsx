@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ToolCall, ToolResult } from "@/lib/agent/types";
+import { formatToolArgs } from "@/lib/utils/format";
 
 interface ToolCallCardProps {
   toolCall: ToolCall;
@@ -36,7 +37,7 @@ export function ToolCallCard({ toolCall, result }: ToolCallCardProps) {
           {toolInfo.label}
         </span>
         <span className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">
-          {formatArgs(toolCall)}
+          {formatToolArgs(toolCall)}
         </span>
         {isLoading ? (
           <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -82,20 +83,3 @@ export function ToolCallCard({ toolCall, result }: ToolCallCardProps) {
   );
 }
 
-function formatArgs(tc: ToolCall): string {
-  const args = tc.arguments;
-  switch (tc.name) {
-    case "read_file":
-      return String(args.path || "");
-    case "write_file":
-      return String(args.path || "");
-    case "list_files":
-      return String(args.path || ".");
-    case "run_command":
-      return String(args.command || "");
-    case "search_files":
-      return `"${args.pattern}" in ${args.path || "."}`;
-    default:
-      return JSON.stringify(args);
-  }
-}

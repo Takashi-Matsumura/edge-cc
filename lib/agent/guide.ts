@@ -1,4 +1,5 @@
 import type { ToolCall, ToolResult, GuideEvent } from "./types";
+import { formatToolArgs } from "@/lib/utils/format";
 
 const TOOL_EXPLANATIONS: Record<string, { why: string; what: string }> = {
   read_file: {
@@ -23,22 +24,6 @@ const TOOL_EXPLANATIONS: Record<string, { why: string; what: string }> = {
   },
 };
 
-function describeToolArgs(tc: ToolCall): string {
-  switch (tc.name) {
-    case "read_file":
-      return `「${tc.arguments.path}」を読み取ります。`;
-    case "write_file":
-      return `「${tc.arguments.path}」にファイルを書き込みます。`;
-    case "list_files":
-      return `「${tc.arguments.path || ".（ルート）"}」の中身を確認します。`;
-    case "run_command":
-      return `コマンド「${tc.arguments.command}」を実行します。`;
-    case "search_files":
-      return `「${tc.arguments.pattern}」を${tc.arguments.path || "ワークスペース全体"}から検索します。`;
-    default:
-      return "";
-  }
-}
 
 export function guideForLoopStart(iteration: number): GuideEvent {
   if (iteration === 0) {
@@ -63,7 +48,7 @@ export function guideForToolChoice(tc: ToolCall, iteration: number): GuideEvent 
     why: "エージェントがこのツールを選択しました。",
     what: "",
   };
-  const argsDesc = describeToolArgs(tc);
+  const argsDesc = formatToolArgs(tc);
 
   return {
     type: "guide",
