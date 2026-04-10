@@ -229,6 +229,98 @@ export default function AboutPage() {
           </div>
         </section>
 
+        {/* なぜ今、ローカルでエージェントが動くのか */}
+        <section className="mb-16">
+          <h2 className="text-2xl font-bold mb-4">なぜ今、ローカル LLM でエージェントが動くのか</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+            自律型コーディングエージェントが実現するには、LLM に複数の能力が同時に求められます。
+            これらは最近のモデルの進化によってはじめて揃いました。
+          </p>
+
+          <h3 className="text-lg font-bold mb-3">エージェントに必要な LLM の 4 つの能力</h3>
+          <div className="space-y-3 mb-8">
+            {[
+              {
+                title: "構造化ツール呼び出し（Function Calling）",
+                desc: "LLM が JSON 形式でツール名と引数を正確に出力する能力。これが不安定だとパースに失敗し、ループが破綻します。エージェントの最も基本的な要件です。",
+              },
+              {
+                title: "多段階推論（Multi-step Reasoning）",
+                desc: "「ファイルを書く → 実行する → エラーを読む → 修正する」のような複数ステップの計画を立て、順序立てて実行できる能力。",
+              },
+              {
+                title: "エラーからの自律回復",
+                desc: "実行結果のエラー内容を分析し、別のアプローチを自律的に選べる能力。例えば「python が見つからない → python3 で再試行」のような判断がこれにあたります。",
+              },
+              {
+                title: "指示追従の精度（Instruction Following）",
+                desc: "システムプロンプトのフォーマット指示に忠実に従い続ける能力。ループの途中で出力形式が崩れると、ツール呼び出しの検出ができなくなります。",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3"
+              >
+                <div className="font-semibold text-sm mb-1">{item.title}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">{item.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="text-lg font-bold mb-3">Gemma 3 → Gemma 4 で何が変わったか</h3>
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left px-4 py-2 font-semibold"></th>
+                  <th className="text-left px-4 py-2 font-semibold text-gray-500 dark:text-gray-400">Gemma 3</th>
+                  <th className="text-left px-4 py-2 font-semibold">Gemma 4</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-600 dark:text-gray-400">
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">Function Calling</td>
+                  <td className="px-4 py-2">非対応。テキストからのパースに依存し不安定</td>
+                  <td className="px-4 py-2 text-gray-900 dark:text-white">OpenAI 互換フォーマットに対応。構造化データとして出力</td>
+                </tr>
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">推論能力</td>
+                  <td className="px-4 py-2">基本的な応答は可能だが、多段階の計画策定が困難</td>
+                  <td className="px-4 py-2 text-gray-900 dark:text-white">Thinking モードによる深い推論。計画→実行→修正のループが可能</td>
+                </tr>
+                <tr className="border-b border-gray-100 dark:border-gray-800">
+                  <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">エラー回復</td>
+                  <td className="px-4 py-2">同じ失敗を繰り返しやすい</td>
+                  <td className="px-4 py-2 text-gray-900 dark:text-white">エラー内容を分析し、代替手段を自律的に選択</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-medium text-gray-900 dark:text-white">エージェント適性</td>
+                  <td className="px-4 py-2">チャットボットとしては有用だが、エージェントには不十分</td>
+                  <td className="px-4 py-2 text-gray-900 dark:text-white">ローカル環境でも自律型エージェントが実用レベルで動作</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 className="text-lg font-bold mb-3">モデルだけではない：推論エンジンの進化</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+            LLM 単体の進化だけでなく、<strong className="text-gray-900 dark:text-white">llama.cpp が Function Calling をサポートした</strong>ことも重要な要因です。
+            このアプリでは OpenAI 互換 API（<code className="text-sm bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">/v1/chat/completions</code>）で
+            <code className="text-sm bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">tools</code> パラメータを渡していますが、
+            これが機能するのは llama.cpp 側がパースとルーティングを処理しているからです。
+          </p>
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-5">
+            <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">
+              <strong>学習ポイント:</strong> 自律型エージェントの実現は「<strong>モデルの進化（Gemma 4）</strong> ×
+              <strong> 推論エンジンの進化（llama.cpp）</strong>」の掛け合わせです。
+              どちらか一方だけでは成り立ちません。このアプリのコードを読む際も、
+              LLM との通信部分（<code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">lib/llm/client.ts</code>）と
+              エージェントループ（<code className="bg-blue-100 dark:bg-blue-900 px-1 rounded">lib/agent/loop.ts</code>）の
+              両方に注目すると、この関係がよく理解できます。
+            </p>
+          </div>
+        </section>
+
         {/* 注意事項 */}
         <section className="mb-16">
           <div className="rounded-lg border border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 p-5">
