@@ -1,0 +1,15 @@
+services:
+  edge-cc:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      # host.docker.internal でホスト側の llama.cpp に接続
+      - LLAMA_CPP_URL=${LLAMA_CPP_URL:-http://host.docker.internal:8080}
+    volumes:
+      # ワークスペースをホスト側に永続化
+      - workspace:/tmp/edge-cc-workspace
+    restart: unless-stopped
+
+volumes:
+  workspace:
