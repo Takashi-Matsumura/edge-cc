@@ -2,7 +2,10 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Header } from "@/components/layout/header";
-import { ChatContainer } from "@/components/chat/chat-container";
+import {
+  ChatContainer,
+  type ChatContainerHandle,
+} from "@/components/chat/chat-container";
 import {
   WorkspacePanel,
   type WorkspacePanelHandle,
@@ -14,10 +17,12 @@ export default function Home() {
   );
   const [guideMode, setGuideMode] = useState(false);
   const workspaceRef = useRef<WorkspacePanelHandle>(null);
+  const chatRef = useRef<ChatContainerHandle>(null);
 
   const handleClearWorkspace = useCallback(async () => {
     await fetch("/api/workspace", { method: "DELETE" });
-    workspaceRef.current?.refresh();
+    chatRef.current?.reset();
+    workspaceRef.current?.reset();
   }, []);
 
   const handleWorkspaceUpdate = useCallback(() => {
@@ -30,6 +35,7 @@ export default function Home() {
       <div className="flex flex-1 min-h-0">
         <div className="flex-[3] min-w-0 border-r border-gray-200 dark:border-gray-700">
           <ChatContainer
+            ref={chatRef}
             onStatusChange={setStatus}
             onWorkspaceUpdate={handleWorkspaceUpdate}
             guideMode={guideMode}

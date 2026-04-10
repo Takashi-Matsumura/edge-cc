@@ -7,6 +7,7 @@ import { FileViewer } from "./file-viewer";
 
 export interface WorkspacePanelHandle {
   refresh: () => void;
+  reset: () => void;
 }
 
 export const WorkspacePanel = forwardRef<WorkspacePanelHandle>(
@@ -26,7 +27,14 @@ export const WorkspacePanel = forwardRef<WorkspacePanelHandle>(
       }
     }, []);
 
-    useImperativeHandle(ref, () => ({ refresh: fetchTree }), [fetchTree]);
+    const reset = useCallback(() => {
+      setTree([]);
+      setSelectedFile(null);
+      setFileContent("");
+      fetchTree();
+    }, [fetchTree]);
+
+    useImperativeHandle(ref, () => ({ refresh: fetchTree, reset }), [fetchTree, reset]);
 
     useEffect(() => {
       fetchTree();

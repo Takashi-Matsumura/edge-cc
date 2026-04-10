@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useImperativeHandle, forwardRef } from "react";
 import type { Message, AgentEvent, ToolResult } from "@/lib/agent/types";
 import { MessageList, type DisplayMessage } from "./message-list";
 import { InputBar } from "./input-bar";
+
+export interface ChatContainerHandle {
+  reset: () => void;
+}
 
 interface ChatContainerProps {
   onStatusChange: (status: "idle" | "thinking" | "executing") => void;
@@ -11,17 +15,26 @@ interface ChatContainerProps {
   guideMode: boolean;
 }
 
-export function ChatContainer({
+export const ChatContainer = forwardRef<ChatContainerHandle, ChatContainerProps>(
+function ChatContainer({
   onStatusChange,
   onWorkspaceUpdate,
   guideMode,
-}: ChatContainerProps) {
+}, ref) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const historyRef = useRef<Message[]>([]);
   const idCounter = useRef(0);
 
   const nextId = () => String(++idCounter.current);
+
+  useImperativeHandle(ref, () => ({
+    reset: () => {
+      setMessages([]);
+      historyRef.current = [];
+      idCounter.current = 0;
+    },
+  }), []);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -202,4 +215,4 @@ export function ChatContainer({
       <InputBar onSend={sendMessage} disabled={isRunning} />
     </div>
   );
-}
+});
