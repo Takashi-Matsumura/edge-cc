@@ -206,7 +206,7 @@ function ChatContainer({
         onStatusChange("idle");
       }
     },
-    [onStatusChange, onWorkspaceUpdate]
+    [onStatusChange, onWorkspaceUpdate, guideMode]
   );
 
   return (
