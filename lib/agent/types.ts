@@ -31,9 +31,17 @@ export type Message =
     }
   | { role: "tool"; tool_call_id: string; content: string };
 
+export type GuideEvent = {
+  type: "guide";
+  phase: "tool_choice" | "tool_result" | "loop_continue" | "loop_start" | "loop_end";
+  content: string;
+  iteration?: number;
+};
+
 export type AgentEvent =
   | { type: "assistant_text"; content: string }
   | { type: "tool_call"; tool_call: ToolCall }
   | { type: "tool_result"; result: ToolResult }
+  | GuideEvent
   | { type: "done" }
   | { type: "error"; message: string };

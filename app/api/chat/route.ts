@@ -2,14 +2,14 @@ import { runAgentLoop } from "@/lib/agent/loop";
 import type { Message } from "@/lib/agent/types";
 
 export async function POST(request: Request) {
-  let body: { message: string; history: Message[] };
+  let body: { message: string; history: Message[]; guideMode?: boolean };
   try {
     body = await request.json();
   } catch {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  const { message, history } = body;
+  const { message, history, guideMode } = body;
   if (!message || typeof message !== "string") {
     return new Response("message is required", { status: 400 });
   }
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of runAgentLoop(message, history || [])) {
+        for await (const event of runAgentLoop(message, history || [], { guideMode })) {
           const data = `data: ${JSON.stringify(event)}\n\n`;
           controller.enqueue(encoder.encode(data));
         }

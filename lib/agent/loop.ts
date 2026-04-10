@@ -3,13 +3,25 @@ import { callLLM } from "@/lib/llm/client";
 import { toolDefinitions } from "./tools";
 import { executeTool } from "./executor";
 import { systemPrompt } from "./system-prompt";
+import {
+  guideForLoopStart,
+  guideForToolChoice,
+  guideForToolResult,
+  guideForLoopEnd,
+} from "./guide";
 
 const MAX_ITERATIONS = 15;
 
+export interface AgentLoopOptions {
+  guideMode?: boolean;
+}
+
 export async function* runAgentLoop(
   userMessage: string,
-  history: Message[]
+  history: Message[],
+  options: AgentLoopOptions = {}
 ): AsyncGenerator<AgentEvent> {
+  const { guideMode = false } = options;
   const messages: Message[] = [
     { role: "system", content: systemPrompt },
     ...history,
@@ -17,6 +29,10 @@ export async function* runAgentLoop(
   ];
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
+    if (guideMode) {
+      yield guideForLoopStart(i);
+    }
+
     let response;
     try {
       response = await callLLM(messages, toolDefinitions);
@@ -42,6 +58,9 @@ export async function* runAgentLoop(
           content: "（応答を生成できませんでした）",
         };
       }
+      if (guideMode) {
+        yield guideForLoopEnd("completed");
+      }
       yield { type: "done" };
       return;
     }
@@ -63,10 +82,18 @@ export async function* runAgentLoop(
 
     // 各ツールを実行
     for (const toolCall of response.toolCalls) {
+      if (guideMode) {
+        yield guideForToolChoice(toolCall, i);
+      }
+
       yield { type: "tool_call", tool_call: toolCall };
 
       const result = await executeTool(toolCall);
       yield { type: "tool_result", result };
+
+      if (guideMode) {
+        yield guideForToolResult(toolCall, result, i);
+      }
 
       messages.push({
         role: "tool",
@@ -78,6 +105,9 @@ export async function* runAgentLoop(
     // 次のイテレーションでLLMを再度呼び出す
   }
 
+  if (guideMode) {
+    yield guideForLoopEnd("max_iterations");
+  }
   yield {
     type: "assistant_text",
     content: "最大イテレーション数に達しました。タスクを中断します。",

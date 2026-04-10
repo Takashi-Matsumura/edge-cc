@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ToolCall, ToolResult } from "@/lib/agent/types";
+import type { ToolCall, ToolResult, GuideEvent } from "@/lib/agent/types";
 import { MessageBubble } from "./message-bubble";
 import { ToolCallCard } from "./tool-call-card";
+import { GuideAnnotation } from "./guide-annotation";
 
 export interface DisplayMessage {
   id: string;
-  type: "user" | "assistant" | "tool_call";
+  type: "user" | "assistant" | "tool_call" | "guide";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
+  guideEvent?: GuideEvent;
 }
 
 interface MessageListProps {
@@ -45,6 +47,9 @@ export function MessageList({ messages }: MessageListProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-3">
       {messages.map((msg) => {
+        if (msg.type === "guide" && msg.guideEvent) {
+          return <GuideAnnotation key={msg.id} event={msg.guideEvent} />;
+        }
         if (msg.type === "tool_call" && msg.toolCall) {
           return (
             <ToolCallCard

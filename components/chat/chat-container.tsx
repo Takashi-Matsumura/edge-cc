@@ -8,11 +8,13 @@ import { InputBar } from "./input-bar";
 interface ChatContainerProps {
   onStatusChange: (status: "idle" | "thinking" | "executing") => void;
   onWorkspaceUpdate: () => void;
+  guideMode: boolean;
 }
 
 export function ChatContainer({
   onStatusChange,
   onWorkspaceUpdate,
+  guideMode,
 }: ChatContainerProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -41,6 +43,7 @@ export function ChatContainer({
           body: JSON.stringify({
             message: text,
             history: historyRef.current,
+            guideMode,
           }),
         });
 
@@ -78,6 +81,17 @@ export function ChatContainer({
             }
 
             switch (event.type) {
+              case "guide": {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: nextId(),
+                    type: "guide",
+                    guideEvent: event,
+                  },
+                ]);
+                break;
+              }
               case "assistant_text": {
                 onStatusChange("thinking");
                 if (!currentAssistantId) {

@@ -5,9 +5,11 @@ import Link from "next/link";
 interface HeaderProps {
   status: "idle" | "thinking" | "executing";
   onClearWorkspace: () => void;
+  guideMode: boolean;
+  onToggleGuide: () => void;
 }
 
-export function Header({ status, onClearWorkspace }: HeaderProps) {
+export function Header({ status, onClearWorkspace, guideMode, onToggleGuide }: HeaderProps) {
   const statusLabels = {
     idle: "待機中",
     thinking: "思考中...",
@@ -36,6 +38,17 @@ export function Header({ status, onClearWorkspace }: HeaderProps) {
           />
           {statusLabels[status]}
         </div>
+        <button
+          onClick={onToggleGuide}
+          className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+            guideMode
+              ? "bg-indigo-100 dark:bg-indigo-900 border-indigo-400 dark:border-indigo-600 text-indigo-700 dark:text-indigo-300"
+              : "border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+          }`}
+          title="ガイドモード: エージェントの各ステップに解説を表示します"
+        >
+          ガイド{guideMode ? " ON" : ""}
+        </button>
         <Link
           href="/about"
           className="text-xs px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
