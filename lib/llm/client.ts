@@ -1,4 +1,4 @@
-import type { Message, ToolCall, ToolName } from "@/lib/agent/types";
+import type { Message, ToolCall, ToolName, LLMUsage } from "@/lib/agent/types";
 
 const LLAMA_CPP_URL =
   process.env.LLAMA_CPP_URL || "http://localhost:8080";
@@ -15,6 +15,26 @@ interface OpenAIToolDef {
 interface LLMResponse {
   text: string | null;
   toolCalls: ToolCall[];
+  usage: LLMUsage | null;
+}
+
+interface RawUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  prompt_tokens_details?: { cached_tokens?: number };
+}
+
+function normalizeUsage(raw: RawUsage | undefined): LLMUsage | null {
+  if (!raw) return null;
+  return {
+    prompt_tokens: raw.prompt_tokens ?? 0,
+    completion_tokens: raw.completion_tokens ?? 0,
+    total_tokens:
+      raw.total_tokens ??
+      (raw.prompt_tokens ?? 0) + (raw.completion_tokens ?? 0),
+    cached_tokens: raw.prompt_tokens_details?.cached_tokens,
+  };
 }
 
 export async function callLLM(
@@ -43,6 +63,7 @@ export async function callLLM(
     throw new Error("No choices in llama.cpp response");
   }
 
+  const usage = normalizeUsage(data.usage);
   const message = choice.message;
 
   // 1. 構造化tool callingレスポンスがある場合
@@ -54,7 +75,7 @@ export async function callLLM(
         arguments: JSON.parse(tc.function.arguments),
       })
     );
-    return { text: message.content || null, toolCalls };
+    return { text: message.content || null, toolCalls, usage };
   }
 
   // 2. テキストからtool callをパースするフォールバック
@@ -69,11 +90,12 @@ export async function callLLM(
     return {
       text: cleanedText || null,
       toolCalls: parsed,
+      usage,
     };
   }
 
   // 3. 通常のテキスト応答
-  return { text, toolCalls: [] };
+  return { text, toolCalls: [], usage };
 }
 
 const VALID_TOOLS: Set<string> = new Set([

@@ -6,6 +6,7 @@ import type {
   AgentEvent,
   ToolResult,
   PlanPayload,
+  LLMUsage,
 } from "@/lib/agent/types";
 import { buildApprovedPlanMessage } from "@/lib/agent/planning-prompt";
 import { MessageList, type DisplayMessage } from "./message-list";
@@ -18,10 +19,12 @@ export interface ChatContainerHandle {
 interface ChatContainerProps {
   onStatusChange: (status: "idle" | "thinking" | "executing") => void;
   onWorkspaceUpdate: () => void;
+  onUsageUpdate: (usage: LLMUsage) => void;
   guideMode: boolean;
   planMode: boolean;
   onTogglePlanMode: () => void;
   attachedRoot: string | null;
+  workspaceTab: "workspace" | "attached";
 }
 
 interface SendMessageOptions {
@@ -32,10 +35,12 @@ export const ChatContainer = forwardRef<ChatContainerHandle, ChatContainerProps>
 function ChatContainer({
   onStatusChange,
   onWorkspaceUpdate,
+  onUsageUpdate,
   guideMode,
   planMode,
   onTogglePlanMode,
   attachedRoot,
+  workspaceTab,
 }, ref) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -190,6 +195,10 @@ function ChatContainer({
                 }
                 break;
               }
+              case "usage": {
+                onUsageUpdate(event.usage);
+                break;
+              }
               case "plan_started": {
                 // 計画立案フェーズ開始。現状特別な UI 更新はなし。
                 currentAssistantId = null;
@@ -259,7 +268,7 @@ function ChatContainer({
         onStatusChange("idle");
       }
     },
-    [onStatusChange, onWorkspaceUpdate, guideMode, planMode, attachedRoot]
+    [onStatusChange, onWorkspaceUpdate, onUsageUpdate, guideMode, planMode, attachedRoot]
   );
 
   const approvePlan = useCallback(
@@ -314,6 +323,8 @@ function ChatContainer({
         disabled={isRunning}
         planMode={planMode}
         onTogglePlanMode={onTogglePlanMode}
+        attachedRoot={attachedRoot}
+        workspaceTab={workspaceTab}
       />
     </div>
   );

@@ -54,10 +54,18 @@ export type GuideEvent = {
   iteration?: number;
 };
 
+export interface LLMUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  cached_tokens?: number;
+}
+
 export type AgentEvent =
   | { type: "assistant_text"; content: string }
   | { type: "tool_call"; tool_call: ToolCall }
   | { type: "tool_result"; result: ToolResult }
+  | { type: "usage"; usage: LLMUsage }
   | GuideEvent
   | { type: "plan_started" }
   | { type: "plan_generated"; plan: PlanPayload }

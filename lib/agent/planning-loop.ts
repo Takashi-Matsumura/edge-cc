@@ -54,6 +54,11 @@ export async function* runPlanningLoop(
       return;
     }
 
+    // usage を先に流す
+    if (response.usage) {
+      yield { type: "usage", usage: response.usage };
+    }
+
     // テキスト応答から計画を抽出できるか試す
     const plan = extractPlanFromText(response.text);
     if (plan) {

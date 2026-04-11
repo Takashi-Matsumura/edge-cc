@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { ContextBadge, type LLMInfo } from "./context-badge";
+import type { LLMUsage } from "@/lib/agent/types";
 
 interface HeaderProps {
   status: "idle" | "thinking" | "executing";
@@ -9,6 +11,8 @@ interface HeaderProps {
   onToggleGuide: () => void;
   attachedRoot: string | null;
   onOpenAttachModal: () => void;
+  llmInfo: LLMInfo | null;
+  llmUsage: LLMUsage | null;
 }
 
 function shortenPath(p: string): string {
@@ -24,6 +28,8 @@ export function Header({
   onToggleGuide,
   attachedRoot,
   onOpenAttachModal,
+  llmInfo,
+  llmUsage,
 }: HeaderProps) {
   const statusLabels = {
     idle: "待機中",
@@ -53,6 +59,7 @@ export function Header({
           />
           {statusLabels[status]}
         </div>
+        <ContextBadge info={llmInfo} usage={llmUsage} />
         <button
           onClick={onOpenAttachModal}
           className={`text-xs px-3 py-1.5 rounded border transition-colors max-w-[240px] truncate ${

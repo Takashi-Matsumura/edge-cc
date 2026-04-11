@@ -22,6 +22,61 @@ const IGNORE_DIRS = new Set([
   ".next",
 ]);
 
+/**
+ * ツール結果の上限。コンテキストウィンドウの肥大化を防ぐためにクライアント
+ * （＝LLM）に返す前に切り詰める。大きすぎるとローカル LLM の品質が急落
+ * するため、read_file は 500 行 or 20KB、list_files は 200 行を目安にする。
+ */
+const TRUNCATE_LIMITS = {
+  readFileMaxLines: 500,
+  readFileMaxBytes: 20 * 1024,
+  listFilesMaxLines: 200,
+  searchFilesMaxMatches: 100,
+} as const;
+
+/**
+ * 文字列を行数と合計バイト数の両方で切り詰める。
+ * 切り詰めた場合は末尾に省略通知を付加して元サイズを明示する。
+ */
+function truncateByLines(
+  text: string,
+  options: { maxLines: number; maxBytes?: number; label: string }
+): string {
+  const lines = text.split("\n");
+  const totalLines = lines.length;
+  const totalBytes = Buffer.byteLength(text, "utf-8");
+
+  let truncated = false;
+  let kept = lines;
+
+  if (totalLines > options.maxLines) {
+    kept = lines.slice(0, options.maxLines);
+    truncated = true;
+  }
+
+  let result = kept.join("\n");
+
+  if (
+    options.maxBytes !== undefined &&
+    Buffer.byteLength(result, "utf-8") > options.maxBytes
+  ) {
+    // バイト境界でカットする（UTF-8 で途中文字を壊さないように Buffer 経由）
+    const buf = Buffer.from(result, "utf-8").subarray(0, options.maxBytes);
+    result = buf.toString("utf-8");
+    // 末尾の壊れた行は削る
+    const lastNewline = result.lastIndexOf("\n");
+    if (lastNewline > 0) result = result.slice(0, lastNewline);
+    truncated = true;
+  }
+
+  if (truncated) {
+    const keptLines = result.split("\n").length;
+    const keptBytes = Buffer.byteLength(result, "utf-8");
+    result += `\n\n... [${options.label}を切り詰めました: ${keptLines}/${totalLines} 行, ${keptBytes}/${totalBytes} バイト表示。続きを見るには範囲を絞って再度ツールを呼んでください]`;
+  }
+  return result;
+}
+
 async function ensureWorkspace() {
   await fs.mkdir(WORKSPACE_ROOT, { recursive: true });
 }
@@ -103,7 +158,12 @@ async function readFile(
     requireString(args.path, "path"),
     context
   );
-  return await fs.readFile(filePath, "utf-8");
+  const raw = await fs.readFile(filePath, "utf-8");
+  return truncateByLines(raw, {
+    maxLines: TRUNCATE_LIMITS.readFileMaxLines,
+    maxBytes: TRUNCATE_LIMITS.readFileMaxBytes,
+    label: "read_file",
+  });
 }
 
 async function writeFile(
@@ -130,9 +190,13 @@ async function listFiles(
   const dirPath = resolveSafePath(optionalString(args.path, "."), context);
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   if (entries.length === 0) return "(空のディレクトリ)";
-  return entries
+  const raw = entries
     .map((e) => `${e.isDirectory() ? "📁" : "📄"} ${e.name}`)
     .join("\n");
+  return truncateByLines(raw, {
+    maxLines: TRUNCATE_LIMITS.listFilesMaxLines,
+    label: "list_files",
+  });
 }
 
 async function runCommand(
@@ -198,7 +262,15 @@ async function searchFiles(
 
   await searchDir(searchPath);
   if (results.length === 0) return `"${pattern}" に一致する結果はありません`;
-  return results.slice(0, 50).join("\n");
+
+  const total = results.length;
+  const limit = TRUNCATE_LIMITS.searchFilesMaxMatches;
+  const kept = results.slice(0, limit);
+  let out = kept.join("\n");
+  if (total > limit) {
+    out += `\n\n... [search_files を切り詰めました: ${limit}/${total} 件表示。検索パターンやディレクトリを絞って再度実行してください]`;
+  }
+  return out;
 }
 
 /**

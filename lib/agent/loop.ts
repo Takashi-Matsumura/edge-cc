@@ -45,6 +45,11 @@ export async function* runAgentLoop(
       return;
     }
 
+    // usage を先に流す（UI のコンテキスト使用量バッジを即座に更新するため）
+    if (response.usage) {
+      yield { type: "usage", usage: response.usage };
+    }
+
     // テキスト応答がある場合
     if (response.text) {
       yield { type: "assistant_text", content: response.text };

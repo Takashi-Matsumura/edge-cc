@@ -7,22 +7,74 @@ interface InputBarProps {
   disabled: boolean;
   planMode: boolean;
   onTogglePlanMode: () => void;
+  attachedRoot: string | null;
+  workspaceTab: "workspace" | "attached";
 }
 
-const EXAMPLES = [
+/**
+ * サンプルプロンプトは **右側パネルで選択中のタブ × Plan Mode** の 4 通りで切り替える。
+ * 初めて使う人が「タブを切り替える / Plan Mode をトグルする」だけで、エージェント
+ * のどんな使い方ができるのかを体験できるようにするのが狙い。
+ *
+ * - Workspace タブ × 通常モード:
+ *     ワークスペース（/tmp/edge-cc-workspace）に **書き込み & 実行** する
+ *     コーディングエージェント的なサンプル
+ * - Workspace タブ × Plan Mode:
+ *     ワークスペースの構成を **調査 → 計画** する（read-only）
+ * - Attached タブ × 通常モード:
+ *     アタッチした既存プロジェクトを **read-only で調査** する
+ * - Attached タブ × Plan Mode:
+ *     大きめのコードベース（C# 想定）を **計画立案付きで分析** する
+ */
+const WORKSPACE_NORMAL_EXAMPLES = [
   "hello.txt に「Hello World」と書いてください",
   "Pythonで FizzBuzz を作って実行してください",
   "ワークスペースのファイルを一覧してください",
 ];
+
+const WORKSPACE_PLAN_EXAMPLES = [
+  "ワークスペースを調査して構成をまとめてください",
+  "このプロジェクトにテストを追加する計画を立ててください",
+  "TODO コメントを探して対応計画を作ってください",
+];
+
+const ATTACHED_NORMAL_EXAMPLES = [
+  "@attached/ の直下を一覧してください",
+  "@attached/ から .csproj を探して scan_csproj で解析してください",
+  "@attached/ のエントリポイントを特定してください",
+];
+
+const ATTACHED_PLAN_EXAMPLES = [
+  "このプロジェクトの概要を教えてください",
+  "使用している NuGet パッケージの一覧と役割をまとめてください",
+  "API エンドポイントを洗い出してください",
+  "主要なクラスと責務をまとめてください",
+];
+
+function pickExamples(
+  planMode: boolean,
+  workspaceTab: "workspace" | "attached"
+): string[] {
+  if (workspaceTab === "attached") {
+    return planMode ? ATTACHED_PLAN_EXAMPLES : ATTACHED_NORMAL_EXAMPLES;
+  }
+  return planMode ? WORKSPACE_PLAN_EXAMPLES : WORKSPACE_NORMAL_EXAMPLES;
+}
 
 export function InputBar({
   onSend,
   disabled,
   planMode,
   onTogglePlanMode,
+  attachedRoot,
+  workspaceTab,
 }: InputBarProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const examples = pickExamples(planMode, workspaceTab);
+  const isAttachedTab = workspaceTab === "attached";
+  // Attached タブだがまだアタッチしていない場合のヒント
+  const needsAttach = isAttachedTab && !attachedRoot;
 
   function handleSubmit() {
     const trimmed = input.trim();
@@ -56,18 +108,32 @@ export function InputBar({
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 p-4">
       <div className="flex items-center justify-between mb-2 gap-2">
-        <div className="flex gap-2 flex-wrap">
-          {!disabled &&
-            input === "" &&
-            EXAMPLES.map((ex) => (
-              <button
-                key={ex}
-                onClick={() => setInput(ex)}
-                className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                {ex}
-              </button>
-            ))}
+        <div className="flex gap-2 flex-wrap items-center">
+          {!disabled && input === "" && (
+            <>
+              {needsAttach && (
+                <span className="text-xs text-gray-400 dark:text-gray-500 italic">
+                  ヘッダーの 📎 からディレクトリをアタッチするとサンプルが試せます
+                </span>
+              )}
+              {examples.map((ex) => (
+                <button
+                  key={ex}
+                  onClick={() => setInput(ex)}
+                  disabled={needsAttach}
+                  className={`text-xs px-2 py-1 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    planMode
+                      ? "bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/60"
+                      : isAttachedTab
+                        ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {ex}
+                </button>
+              ))}
+            </>
+          )}
         </div>
         <button
           type="button"

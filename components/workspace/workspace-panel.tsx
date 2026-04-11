@@ -16,31 +16,28 @@ export interface WorkspacePanelHandle {
   reset: () => void;
 }
 
+type TabKey = "workspace" | "attached";
+
 interface WorkspacePanelProps {
   attachedRoot: string | null;
+  activeTab: TabKey;
+  onChangeTab: (tab: TabKey) => void;
 }
-
-type TabKey = "workspace" | "attached";
 
 export const WorkspacePanel = forwardRef<
   WorkspacePanelHandle,
   WorkspacePanelProps
->(function WorkspacePanel({ attachedRoot }, ref) {
+>(function WorkspacePanel({ attachedRoot, activeTab, onChangeTab }, ref) {
   const [workspaceTree, setWorkspaceTree] = useState<FileTreeNode[]>([]);
   const [attachedTreeState, setAttachedTreeState] = useState<FileTreeNode[]>(
     []
   );
-  const [userSelectedTab, setUserSelectedTab] =
-    useState<TabKey>("workspace");
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string>("");
 
-  // 派生状態（derived state）
-  // - attachedRoot が null なら attached タブは無効、workspace にフォールバック
-  const activeTab: TabKey =
-    userSelectedTab === "attached" && !attachedRoot
-      ? "workspace"
-      : userSelectedTab;
+  // 親（app/page.tsx）は detach 時に workspace タブへ戻すので、
+  // ここで再フォールバックする必要はない。
+  // `activeTab === "attached" && !attachedRoot` の組み合わせは発生しない想定。
   // - attachedRoot がない状態で @attached/ を指す selectedFile は無効化
   const effectiveSelectedFile =
     selectedFile && selectedFile.startsWith("@attached/") && !attachedRoot
@@ -165,7 +162,7 @@ export const WorkspacePanel = forwardRef<
 
   const handleChangeTab = (tab: TabKey) => {
     if (tab === activeTab) return;
-    setUserSelectedTab(tab);
+    onChangeTab(tab);
     setSelectedFile(null);
     setFileContent("");
   };
