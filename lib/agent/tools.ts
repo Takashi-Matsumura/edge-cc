@@ -101,6 +101,11 @@ export const toolDefinitions = [
   },
 ];
 
+// Plan Mode 用: 書き込み系を除いた read-only ツールのみ
+export const readOnlyToolDefinitions = toolDefinitions.filter(
+  (t) => t.function.name !== "write_file" && t.function.name !== "run_command"
+);
+
 export const toolDescriptionForPrompt = `
 利用可能なツール:
 

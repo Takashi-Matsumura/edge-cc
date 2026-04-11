@@ -88,7 +88,7 @@ export async function* runAgentLoop(
 
       yield { type: "tool_call", tool_call: toolCall };
 
-      const result = await executeTool(toolCall);
+      const result = await executeTool(toolCall, { mode: "normal" });
       yield { type: "tool_result", result };
 
       if (guideMode) {

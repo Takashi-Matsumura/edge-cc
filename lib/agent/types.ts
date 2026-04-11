@@ -31,9 +31,24 @@ export type Message =
     }
   | { role: "tool"; tool_call_id: string; content: string };
 
+export type ExecutionMode = "normal" | "planning";
+
+export interface PlanPayload {
+  markdown: string;
+}
+
+export type PlanStatus = "pending" | "approved" | "rejected";
+
 export type GuideEvent = {
   type: "guide";
-  phase: "tool_choice" | "tool_result" | "loop_continue" | "loop_start" | "loop_end";
+  phase:
+    | "tool_choice"
+    | "tool_result"
+    | "loop_continue"
+    | "loop_start"
+    | "loop_end"
+    | "plan_start"
+    | "plan_generated";
   content: string;
   iteration?: number;
 };
@@ -43,5 +58,7 @@ export type AgentEvent =
   | { type: "tool_call"; tool_call: ToolCall }
   | { type: "tool_result"; result: ToolResult }
   | GuideEvent
+  | { type: "plan_started" }
+  | { type: "plan_generated"; plan: PlanPayload }
   | { type: "done" }
   | { type: "error"; message: string };

@@ -1,25 +1,40 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ToolCall, ToolResult, GuideEvent } from "@/lib/agent/types";
+import type {
+  ToolCall,
+  ToolResult,
+  GuideEvent,
+  PlanPayload,
+  PlanStatus,
+} from "@/lib/agent/types";
 import { MessageBubble } from "./message-bubble";
 import { ToolCallCard } from "./tool-call-card";
 import { GuideAnnotation } from "./guide-annotation";
+import { PlanCard } from "./plan-card";
 
 export interface DisplayMessage {
   id: string;
-  type: "user" | "assistant" | "tool_call" | "guide";
+  type: "user" | "assistant" | "tool_call" | "guide" | "plan";
   content?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
   guideEvent?: GuideEvent;
+  plan?: PlanPayload;
+  planStatus?: PlanStatus;
 }
 
 interface MessageListProps {
   messages: DisplayMessage[];
+  onApprovePlan?: (msgId: string) => void;
+  onRejectPlan?: (msgId: string) => void;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({
+  messages,
+  onApprovePlan,
+  onRejectPlan,
+}: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,6 +71,17 @@ export function MessageList({ messages }: MessageListProps) {
               key={msg.id}
               toolCall={msg.toolCall}
               result={msg.toolResult}
+            />
+          );
+        }
+        if (msg.type === "plan" && msg.plan && msg.planStatus) {
+          return (
+            <PlanCard
+              key={msg.id}
+              plan={msg.plan}
+              status={msg.planStatus}
+              onApprove={() => onApprovePlan?.(msg.id)}
+              onReject={() => onRejectPlan?.(msg.id)}
             />
           );
         }

@@ -1,18 +1,36 @@
 import { promises as fs } from "fs";
 import path from "path";
-import type { ToolCall, ToolResult } from "./types";
+import type { ToolCall, ToolResult, ExecutionMode } from "./types";
 import { execAsync } from "@/lib/utils/exec";
 import { requireString, optionalString } from "@/lib/utils/validate";
 
 export const WORKSPACE_ROOT = "/tmp/edge-cc-workspace/";
+// 末尾スラッシュを除いた形。path.resolve の戻り値と比較するために使う。
+const WORKSPACE_ROOT_NORMALIZED = path.resolve(WORKSPACE_ROOT);
 
 async function ensureWorkspace() {
   await fs.mkdir(WORKSPACE_ROOT, { recursive: true });
 }
 
-function resolveSafePath(relativePath: string): string {
+/**
+ * 相対パスをワークスペースルート基準で絶対パスに解決します。
+ * ワークスペース外を指すパス（`..` によるエスケープなど）は拒否します。
+ *
+ * 実装メモ:
+ * - `path.resolve("/tmp/edge-cc-workspace/", ".")` は末尾スラッシュのない
+ *   `/tmp/edge-cc-workspace` を返すため、`startsWith(WORKSPACE_ROOT)` での
+ *   比較は false になり、ワークスペースルート自身を指す "." や "./" が
+ *   誤って拒否されていた。正規化したパスと厳密比較 + セパレータ付きで
+ *   前方一致を取ることで修正している。
+ * - セパレータ付きの前方一致を使うことで、`/tmp/edge-cc-workspace-evil`
+ *   のような prefix-escape も同時に防いでいる。
+ */
+export function resolveSafePath(relativePath: string): string {
   const resolved = path.resolve(WORKSPACE_ROOT, relativePath);
-  if (!resolved.startsWith(WORKSPACE_ROOT)) {
+  if (
+    resolved !== WORKSPACE_ROOT_NORMALIZED &&
+    !resolved.startsWith(WORKSPACE_ROOT_NORMALIZED + path.sep)
+  ) {
     throw new Error("パスがワークスペース外を指しています");
   }
   return resolved;
@@ -107,7 +125,27 @@ const TOOL_HANDLERS: Record<
   search_files: searchFiles,
 };
 
-export async function executeTool(toolCall: ToolCall): Promise<ToolResult> {
+export interface ExecuteToolOptions {
+  mode?: ExecutionMode;
+}
+
+const PLANNING_BLOCKED_TOOLS = new Set(["write_file", "run_command"]);
+
+export async function executeTool(
+  toolCall: ToolCall,
+  options: ExecuteToolOptions = {}
+): Promise<ToolResult> {
+  const { mode = "normal" } = options;
+
+  // Plan Mode では書き込み系ツールを二重防御で拒否
+  if (mode === "planning" && PLANNING_BLOCKED_TOOLS.has(toolCall.name)) {
+    return {
+      tool_call_id: toolCall.id,
+      content: `Plan Mode では書き込み系ツール（${toolCall.name}）は使用できません。調査系ツール（read_file / list_files / search_files）のみ利用可能です。`,
+      is_error: true,
+    };
+  }
+
   await ensureWorkspace();
 
   try {

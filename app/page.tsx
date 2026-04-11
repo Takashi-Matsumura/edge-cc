@@ -16,6 +16,7 @@ export default function Home() {
     "idle"
   );
   const [guideMode, setGuideMode] = useState(false);
+  const [planMode, setPlanMode] = useState(false);
   const workspaceRef = useRef<WorkspacePanelHandle>(null);
   const chatRef = useRef<ChatContainerHandle>(null);
 
@@ -39,6 +40,8 @@ export default function Home() {
             onStatusChange={setStatus}
             onWorkspaceUpdate={handleWorkspaceUpdate}
             guideMode={guideMode}
+            planMode={planMode}
+            onTogglePlanMode={() => setPlanMode((p) => !p)}
           />
         </div>
         <div className="flex-[2] min-w-0 hidden md:flex flex-col">

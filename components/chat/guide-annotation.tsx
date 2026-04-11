@@ -10,6 +10,8 @@ const PHASE_LABELS: Record<GuideEvent["phase"], string> = {
   tool_choice: "ツール選択",
   tool_result: "実行結果の解釈",
   loop_end: "ループ終了",
+  plan_start: "計画立案開始",
+  plan_generated: "計画生成完了",
 };
 
 export function GuideAnnotation({ event }: GuideAnnotationProps) {
