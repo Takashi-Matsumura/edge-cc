@@ -7,9 +7,24 @@ interface HeaderProps {
   onClearWorkspace: () => void;
   guideMode: boolean;
   onToggleGuide: () => void;
+  attachedRoot: string | null;
+  onOpenAttachModal: () => void;
 }
 
-export function Header({ status, onClearWorkspace, guideMode, onToggleGuide }: HeaderProps) {
+function shortenPath(p: string): string {
+  const segments = p.split("/").filter(Boolean);
+  if (segments.length <= 2) return p;
+  return ".../" + segments.slice(-2).join("/");
+}
+
+export function Header({
+  status,
+  onClearWorkspace,
+  guideMode,
+  onToggleGuide,
+  attachedRoot,
+  onOpenAttachModal,
+}: HeaderProps) {
   const statusLabels = {
     idle: "待機中",
     thinking: "思考中...",
@@ -38,6 +53,21 @@ export function Header({ status, onClearWorkspace, guideMode, onToggleGuide }: H
           />
           {statusLabels[status]}
         </div>
+        <button
+          onClick={onOpenAttachModal}
+          className={`text-xs px-3 py-1.5 rounded border transition-colors max-w-[240px] truncate ${
+            attachedRoot
+              ? "bg-purple-100 dark:bg-purple-900/60 border-purple-400 dark:border-purple-600 text-purple-700 dark:text-purple-300"
+              : "border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+          }`}
+          title={
+            attachedRoot
+              ? `Attached Directory: ${attachedRoot}`
+              : "既存のディレクトリを read-only で読み込む"
+          }
+        >
+          📎 {attachedRoot ? shortenPath(attachedRoot) : "Directory をアタッチ"}
+        </button>
         <button
           onClick={onToggleGuide}
           className={`text-xs px-3 py-1.5 rounded border transition-colors ${

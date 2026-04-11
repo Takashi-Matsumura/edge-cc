@@ -3,7 +3,8 @@ export type ToolName =
   | "write_file"
   | "list_files"
   | "run_command"
-  | "search_files";
+  | "search_files"
+  | "scan_csproj";
 
 export interface ToolCall {
   id: string;

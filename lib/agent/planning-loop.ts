@@ -16,6 +16,7 @@ const DEFAULT_MAX_ITERATIONS = 8;
 export interface PlanningLoopOptions {
   guideMode?: boolean;
   maxIterations?: number;
+  attachedRoot?: string;
 }
 
 export async function* runPlanningLoop(
@@ -23,7 +24,11 @@ export async function* runPlanningLoop(
   history: Message[],
   options: PlanningLoopOptions = {}
 ): AsyncGenerator<AgentEvent> {
-  const { guideMode = false, maxIterations = DEFAULT_MAX_ITERATIONS } = options;
+  const {
+    guideMode = false,
+    maxIterations = DEFAULT_MAX_ITERATIONS,
+    attachedRoot,
+  } = options;
 
   const messages: Message[] = [
     { role: "system", content: planningSystemPrompt },
@@ -110,7 +115,10 @@ export async function* runPlanningLoop(
     for (const toolCall of response.toolCalls) {
       yield { type: "tool_call", tool_call: toolCall };
 
-      const result = await executeTool(toolCall, { mode: "planning" });
+      const result = await executeTool(toolCall, {
+        mode: "planning",
+        attachedRoot,
+      });
       yield { type: "tool_result", result };
 
       messages.push({

@@ -22,6 +22,10 @@ const TOOL_EXPLANATIONS: Record<string, { why: string; what: string }> = {
     why: "エージェントはファイル群の中から特定のテキストを探す必要があると判断しました。grep のような検索操作です。",
     what: "ワークスペース内のファイルを横断的に検索し、パターンに一致する行を返します。",
   },
+  scan_csproj: {
+    why: "エージェントは C# プロジェクトの構成（対象フレームワーク、依存パッケージ、参照プロジェクト）を把握しようとしています。単に read_file で生の XML を読むより、意味のある情報だけを構造化して取得できます。",
+    what: ".csproj ファイルを XML パースし、TargetFramework / OutputType / NuGet参照 / プロジェクト参照などを Markdown 形式で返します。",
+  },
 };
 
 

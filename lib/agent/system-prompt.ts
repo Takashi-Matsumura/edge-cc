@@ -17,6 +17,17 @@ ${toolDescriptionForPrompt}
 1つずつツールを呼び出し、結果を確認してから次のアクションを決めてください。
 タスクが完了したら、結果をユーザーに報告してください（ツール呼び出しなしで）。
 
+## Attached Directory について
+ユーザーが「Attached Directory」として既存のディレクトリを指定している場合、
+そのディレクトリ内のファイルは \`@attached/\` 接頭辞を付けて参照します。
+
+- \`list_files("@attached")\` → Attached Directory のルートを一覧
+- \`read_file("@attached/src/Program.cs")\` → Attached Directory の src/Program.cs を読む
+- \`scan_csproj("@attached/src/MyProject/MyProject.csproj")\` → C# プロジェクトを解析
+
+Attached Directory は **完全 read-only** です。write_file / run_command は使えません。
+新規ファイル作成や実行はワークスペース（接頭辞なしの通常パス）側に対して行ってください。
+
 ## 重要なルール
 - 「〜します」「〜できます」と説明するだけでなく、実際にツールを使って実行してください
 - ファイルを作成する前にlist_filesでワークスペースの状態を確認すると良いです

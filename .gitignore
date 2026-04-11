@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# C# build artifacts (samples/ 配下で将来 dotnet build されたときの対策)
+**/bin/
+**/obj/
+**/.vs/

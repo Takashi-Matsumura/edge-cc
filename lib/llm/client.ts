@@ -82,6 +82,7 @@ const VALID_TOOLS: Set<string> = new Set([
   "list_files",
   "run_command",
   "search_files",
+  "scan_csproj",
 ]);
 
 function parseToolCallsFromText(text: string): ToolCall[] {

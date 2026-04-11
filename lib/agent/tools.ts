@@ -99,6 +99,25 @@ export const toolDefinitions = [
       },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "scan_csproj",
+      description:
+        ".csproj ファイルを解析し、ターゲットフレームワーク、NuGetパッケージ参照、プロジェクト参照などの主要情報を抽出します。LLMによる推測ではなくXMLパースによる正確な情報を返すため、C#プロジェクトの構成把握に最適です。",
+      parameters: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description:
+              ".csproj ファイルのパス。Attached Directoryの場合は @attached/ 接頭辞を使う",
+          },
+        },
+        required: ["path"],
+      },
+    },
+  },
 ];
 
 // Plan Mode 用: 書き込み系を除いた read-only ツールのみ
@@ -124,4 +143,8 @@ export const toolDescriptionForPrompt = `
 
 5. search_files: ファイル内を検索する
    使い方: {"tool": "search_files", "arguments": {"pattern": "検索文字列", "path": "ディレクトリパス"}}
+
+6. scan_csproj: .csproj ファイルを解析して C# プロジェクトの構成を取得する
+   使い方: {"tool": "scan_csproj", "arguments": {"path": ".csprojファイルパス"}}
+   ※ Attached Directory のファイルは @attached/path/to/project.csproj のように指定する
 `;

@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     history: Message[];
     guideMode?: boolean;
     planMode?: boolean;
+    attachedRoot?: string | null;
   };
   try {
     body = await request.json();
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
   }
 
   const { message, history, guideMode, planMode } = body;
+  const attachedRoot = body.attachedRoot ?? undefined;
   if (!message || typeof message !== "string") {
     return new Response("message is required", { status: 400 });
   }
@@ -25,8 +27,14 @@ export async function POST(request: Request) {
     async start(controller) {
       try {
         const iterator = planMode
-          ? runPlanningLoop(message, history || [], { guideMode })
-          : runAgentLoop(message, history || [], { guideMode });
+          ? runPlanningLoop(message, history || [], {
+              guideMode,
+              attachedRoot,
+            })
+          : runAgentLoop(message, history || [], {
+              guideMode,
+              attachedRoot,
+            });
         for await (const event of iterator) {
           const data = `data: ${JSON.stringify(event)}\n\n`;
           controller.enqueue(encoder.encode(data));

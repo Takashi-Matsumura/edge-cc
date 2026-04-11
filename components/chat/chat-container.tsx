@@ -21,6 +21,7 @@ interface ChatContainerProps {
   guideMode: boolean;
   planMode: boolean;
   onTogglePlanMode: () => void;
+  attachedRoot: string | null;
 }
 
 interface SendMessageOptions {
@@ -34,6 +35,7 @@ function ChatContainer({
   guideMode,
   planMode,
   onTogglePlanMode,
+  attachedRoot,
 }, ref) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -78,6 +80,7 @@ function ChatContainer({
             history: historyRef.current,
             guideMode,
             planMode: effectivePlanMode,
+            attachedRoot,
           }),
         });
 
@@ -256,7 +259,7 @@ function ChatContainer({
         onStatusChange("idle");
       }
     },
-    [onStatusChange, onWorkspaceUpdate, guideMode, planMode]
+    [onStatusChange, onWorkspaceUpdate, guideMode, planMode, attachedRoot]
   );
 
   const approvePlan = useCallback(

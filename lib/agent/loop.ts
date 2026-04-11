@@ -14,6 +14,7 @@ const MAX_ITERATIONS = 15;
 
 export interface AgentLoopOptions {
   guideMode?: boolean;
+  attachedRoot?: string;
 }
 
 export async function* runAgentLoop(
@@ -21,7 +22,7 @@ export async function* runAgentLoop(
   history: Message[],
   options: AgentLoopOptions = {}
 ): AsyncGenerator<AgentEvent> {
-  const { guideMode = false } = options;
+  const { guideMode = false, attachedRoot } = options;
   const messages: Message[] = [
     { role: "system", content: systemPrompt },
     ...history,
@@ -88,7 +89,10 @@ export async function* runAgentLoop(
 
       yield { type: "tool_call", tool_call: toolCall };
 
-      const result = await executeTool(toolCall, { mode: "normal" });
+      const result = await executeTool(toolCall, {
+        mode: "normal",
+        attachedRoot,
+      });
       yield { type: "tool_result", result };
 
       if (guideMode) {
