@@ -20,6 +20,7 @@ export function AttachModal({
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -67,6 +68,37 @@ export function AttachModal({
     onClose();
   }
 
+  async function handleBrowse() {
+    setBrowsing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/workspace/attach/browse", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "フォルダ選択に失敗しました");
+        return;
+      }
+      if (data.canceled) {
+        return;
+      }
+      if (data.path) {
+        setInput(data.path);
+        // すぐに検証を走らせず、ユーザが確認してから「アタッチ」を押す
+        inputRef.current?.focus();
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "フォルダ選択中にエラーが発生しました"
+      );
+    } finally {
+      setBrowsing(false);
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -102,16 +134,27 @@ export function AttachModal({
             <span className="text-xs text-gray-600 dark:text-gray-400">
               絶対パス（~ も使用可）
             </span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="/Users/you/projects/my-csharp-project"
-              disabled={submitting}
-              className="mt-1 w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
-            />
+            <div className="mt-1 flex gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="/Users/you/projects/my-csharp-project"
+                disabled={submitting || browsing}
+                className="flex-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={handleBrowse}
+                disabled={submitting || browsing}
+                title="Finder でフォルダを選択（macOS のみ）"
+                className="px-3 py-2 rounded-md text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 whitespace-nowrap"
+              >
+                {browsing ? "選択中..." : "📂 Finder"}
+              </button>
+            </div>
           </label>
 
           {currentPath && (
